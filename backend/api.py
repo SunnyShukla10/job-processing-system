@@ -12,14 +12,13 @@ class JobOutput(BaseModel):
     job_type: str
     state: str
 
-
-
-@app.get("/")
-def root():
+@app.get("/jobs")
+def get_jobs():
     '''
-    Root - might get rid of it
+    This gets all the jobs as a list in format of JobOutput
     '''
-    return {"message": "Root of Job Processing Systen"}
+    
+    return {"GET jobs": "List of jobs"}
 
 @app.post("/jobs")
 def create_job():
@@ -28,14 +27,14 @@ def create_job():
     Since we don't have a backend yet, will just use curl 
     '''
 
-    return {"message": "Sending jobs"}
+    return {"message": "Sending job"}
 
 @app.get("/jobs/{job_id}")
 def get_job_id(job_id):
     '''
     With the parameter job_id we will use that and get the status and information about that job and expect an output like the JobOutput Model
     '''
-    return {"job_id": job_id}
+    return {"job_id": f"{job_id}"}
 
 @app.get("/health")
 def get_health():
