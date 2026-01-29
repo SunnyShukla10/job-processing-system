@@ -27,25 +27,23 @@ Allowed transitions
 - running -> failed
 - failed -> pending (only during retries as long as the count < max-retry)
 '''
+import logger
+import config
+
 
 # Job data model
 
 class Job:
-    '''
-    Context for Job
-
-    Fields:
-    - job_id: immutable
-    - job_type: immutable
-    - job_input: immutable
-    - state: mutable
-    - created_at: set once 
-    - started_at: set when updated to running
-    - finished_at: set when state becomes completed
-    - result: only set when successful
-    - error: only set when failed
-    '''
-    pass
+    job_id: str
+    job_type: str
+    job_input: str
+    state: str 
+    created_at: str
+    started_at: str
+    finished_at: str
+    result: str
+    error: str
+    
 
 
 # Job creation and lookup

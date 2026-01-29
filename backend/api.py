@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+import logger, db
+
 app = FastAPI()
 
 class JobInput(BaseModel):
@@ -21,12 +23,12 @@ def get_jobs():
     return {"GET jobs": "List of jobs"}
 
 @app.post("/jobs")
-def create_job():
+def create_job(job: JobInput):
     '''
     Using the JobInput model we will be given some info and send it to our worker class
     Since we don't have a backend yet, will just use curl 
     '''
-
+    
     return {"message": "Sending job"}
 
 @app.get("/jobs/{job_id}")
