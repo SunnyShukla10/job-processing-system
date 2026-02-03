@@ -29,26 +29,18 @@ Allowed transitions
 '''
 import logger
 import config
+import uuid
+import datetime
+import sqlite3
 
 
 # Job data model
 
-class Job:
-    job_id: str
-    job_type: str
-    job_input: str
-    state: str 
-    created_at: str
-    started_at: str
-    finished_at: str
-    result: str
-    error: str
+
+
     
-
-
 # Job creation and lookup
-
-def create_job(job_type, job_input):
+def create_job(job_type, job_input) -> str:
     '''
     Docstring for create_job
     
@@ -57,7 +49,16 @@ def create_job(job_type, job_input):
     - Sets created_at
     - Adds to the db
     '''
-    pass
+
+    job_id = uuid.uuid4()
+    state = "pending"
+    created_at = datetime.datetime.now().isoformat()
+    
+    with sqlite3.connect(config.DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO jobs (job_id, job_type, job_input, state, created_at) VALUES (?,?,?,?,?)", (str(job_id),job_type,job_input,state,created_at))      
+
+    return str(job_id)
 
 def get_job(job_id):
     '''
@@ -68,6 +69,8 @@ def get_job(job_id):
     Read only op
     Used by API to report status
     '''
+
+
 
 def get_all_jobs():
     '''
@@ -93,6 +96,9 @@ def claim_next_job():
     Returns the claimed job or None if no jobs are avaliable
     
     '''
+
+
+
     pass
 
 
