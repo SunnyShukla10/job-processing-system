@@ -32,11 +32,7 @@ import config
 import uuid
 import datetime
 import sqlite3
-
-
-# Job data model
-
-
+from typing import Optional
 
     
 # Job creation and lookup
@@ -69,7 +65,16 @@ def get_job(job_id):
     Read only op
     Used by API to report status
     '''
+    conn = sqlite3.connect(config.DB_PATH)
+    cur = conn.cursor()
+    row = cur.execute("SELECT job_type, state FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
 
+    if row:
+        job_type, state = row[0], row[1]
+
+        return (job_type, state)
+
+    return None
 
 
 def get_all_jobs():
@@ -82,7 +87,7 @@ def get_all_jobs():
     pass
 
 # Job claiming
-def claim_next_job():
+def claim_next_job() -> Optional[str]:
     '''
     Docstring for claim_next_job
     
@@ -96,11 +101,18 @@ def claim_next_job():
     Returns the claimed job or None if no jobs are avaliable
     
     '''
+    with sqlite3.connect(config.DB_PATH) as conn:
+        cur = conn.cursor()
 
+        row = cur.execute("SELECT job_id FROM jobs WHERE state = 'pending' ORDER BY created_at LIMIT 1").fetchone()
+        if row:
+            job_id = row[0]
+            started_at = datetime.datetime.now().isoformat()
+            cur.execute("UPDATE jobs SET state = 'running', started_at = ? WHERE job_id = ? AND state = 'pending'", (started_at,job_id))
 
+            return job_id if cur.rowcount == 1 else None
 
-    pass
-
+        return None
 
 # Job completion/faliure
 
