@@ -32,7 +32,7 @@ import config
 import uuid
 import datetime
 import sqlite3
-from typing import Optional
+from typing import Optional, List, Tuple
 
     
 # Job creation and lookup
@@ -48,7 +48,7 @@ def create_job(job_type, job_input) -> str:
 
     job_id = uuid.uuid4()
     state = "pending"
-    created_at = datetime.datetime.now().isoformat()
+    created_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     
     with sqlite3.connect(config.DB_PATH) as conn:
         cur = conn.cursor()
@@ -65,26 +65,36 @@ def get_job(job_id):
     Read only op
     Used by API to report status
     '''
-    conn = sqlite3.connect(config.DB_PATH)
-    cur = conn.cursor()
-    row = cur.execute("SELECT job_type, state FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
+    with sqlite3.connect(config.DB_PATH) as conn:
+        cur = conn.cursor()
+        row = cur.execute("SELECT job_type, state FROM jobs WHERE job_id = ?", (job_id,)).fetchone()
 
-    if row:
-        job_type, state = row[0], row[1]
+        if row:
+            job_type, state = row[0], row[1]
+            return (job_type, state)
+    
+        return None
 
-        return (job_type, state)
 
-    return None
-
-
-def get_all_jobs():
+def get_all_jobs() -> List[Tuple[str, str, str]]:
     '''
     Docstring for get_all_jobs
         
     Fetches all jobs and returns a list of them
     
     '''
-    pass
+    with sqlite3.connect(config.DB_PATH) as conn:
+        cur = conn.cursor()
+        rows = cur.execute("SELECT job_id, job_type, state FROM jobs").fetchall()
+        
+        jobs: List[Tuple[str, str, str]] = []
+        for row in rows:
+            jobs.append((row[0], row[1], row[2]))
+        
+        conn.close()
+
+        return jobs
+
 
 # Job claiming
 def claim_next_job() -> Optional[str]:
@@ -107,7 +117,7 @@ def claim_next_job() -> Optional[str]:
         row = cur.execute("SELECT job_id FROM jobs WHERE state = 'pending' ORDER BY created_at LIMIT 1").fetchone()
         if row:
             job_id = row[0]
-            started_at = datetime.datetime.now().isoformat()
+            started_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
             cur.execute("UPDATE jobs SET state = 'running', started_at = ? WHERE job_id = ? AND state = 'pending'", (started_at,job_id))
 
             return job_id if cur.rowcount == 1 else None
@@ -129,8 +139,12 @@ def mark_job_completed(job_id, result):
 
     Invalid transitions must be rejected
     '''
+    finished_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-    pass
+    with sqlite3.connect(config.DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE jobs SET result = ?, finished_at = ? WHERE job_id = ? AND job = 'running'", (result, finished_at, job_id))
+
 
 def mark_job_failed(job_id, error):
     '''
@@ -139,3 +153,8 @@ def mark_job_failed(job_id, error):
     Mark a running job as failed
 
     '''
+    finished_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    with sqlite3.connect(config.DB_PATH) as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE jobs SET error = ?, finished_at = ? FROM jobs WHERE job_id = ? AND state = 'running'", (error, finished_at, job_id))
